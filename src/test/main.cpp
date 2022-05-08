@@ -57,6 +57,7 @@ private:
     std::vector<std::string> _failedTestCases = { };
 };
 
+
 bool useForEachForIterTest = false;
 
 template <typename Collection>
@@ -268,11 +269,16 @@ void test_generators(TestCase& testCase)
 
     struct FiniteCountingGenerator
     {
-        FiniteCountingGenerator(int startValue, int maxValue, int step) : _value(startValue), _maxValue(maxValue), _step(step)
+        FiniteCountingGenerator(int startValue, int maxValue) : _value(startValue), _maxValue(maxValue)
         {
         }
 
         std::optional<int> operator()()
+        {
+            return next();
+        }
+
+        std::optional<int> next()
         {
             if (_value >= _maxValue)
             {
@@ -280,21 +286,49 @@ void test_generators(TestCase& testCase)
             }
 
             int prev = _value;
-            _value += _step;
+            ++_value;
             return prev;
+        }
+
+        std::optional<int> next_back()
+        {
+            if (_value >= _maxValue)
+            {
+                return { };
+            }
+
+            return --_maxValue;
         }
 
         int _value;
         int _maxValue;
-        int _step;
     };
 
     testCase(test_infinite_iter(rusty::infinite_generator(CountingGenerator(0, 1)), 10, std::vector<int>{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }), "infinite generator, 0 to 10");
     testCase(test_infinite_iter(rusty::infinite_generator(CountingGenerator(10, 2)), 10, std::vector<int>{ 10, 12, 14, 16, 18, 20, 22, 24, 26, 28 }), "infinite generator, 10 to 30, step 2");
     testCase(test_infinite_iter(rusty::infinite_generator(CountingGenerator(0, 0)), 10, std::vector<int>{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }), "infinite generator, 0 step, always 0");
 
-    testCase(test_iter(rusty::finite_generator(FiniteCountingGenerator(0, 10, 1)), std::vector<int>{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }), "finite generator, 0 to 10");
-    testCase(test_iter(rusty::finite_generator(FiniteCountingGenerator(10, 20, 2)), std::vector<int>{ 10, 12, 14, 16, 18 }), "finite generator, 10 to 20, step 2");
+    testCase(test_iter(rusty::finite_generator(FiniteCountingGenerator(0, 10)), std::vector<int>{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }), "finite generator, 0 to 10");
+    testCase(test_iter(rusty::finite_generator(FiniteCountingGenerator(10, 20)), std::vector<int>{ 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 }), "finite generator, 10 to 20");
+
+    auto doubleEndedGenerator = rusty::double_ended_finite_generator(FiniteCountingGenerator(0, 10));
+    testCase(
+        *doubleEndedGenerator.next() == 0 &&
+        *doubleEndedGenerator.next() == 1 &&
+        *doubleEndedGenerator.next() == 2 &&
+        *doubleEndedGenerator.next_back() == 9 &&
+        *doubleEndedGenerator.next_back() == 8 &&
+        *doubleEndedGenerator.next_back() == 7 &&
+        *doubleEndedGenerator.next() == 3 &&
+        *doubleEndedGenerator.next() == 4 &&
+        *doubleEndedGenerator.next_back() == 6 &&
+        *doubleEndedGenerator.next_back() == 5 &&
+        doubleEndedGenerator.next_back() == nullptr &&
+        doubleEndedGenerator.next_back() == nullptr &&
+        doubleEndedGenerator.next() == nullptr &&
+        doubleEndedGenerator.next() == nullptr,
+        "double ended finite generator"
+    );
 }
 
 void test_ranges(TestCase& testCase)
@@ -980,6 +1014,11 @@ void test_fold(TestCase& testCase)
     testCase(rusty::range(0, 0).fold(0, foldFunc) == 0, "fold, empty iterator");
     testCase(rusty::range(0, 10).fold(0, foldFunc) == 45, "fold");
     testCase(rusty::range(1, 10).fold(1, [](const int& acc, const int& current) { return acc * current; }) == 362880, "fold, multiplication");
+
+    // test rfold
+    testCase(rusty::range(0, 0).rfold(0, foldFunc) == 0, "rfold, empty iterator");
+    testCase(rusty::range(0, 10).rfold(0, foldFunc) == 45, "rfold");
+    testCase(rusty::range(1, 10).rfold(1, [](const int& acc, const int& current) { return acc * current; }) == 362880, "rfold, multiplication");
 }
 
 void test_count(TestCase& testCase)
@@ -1016,6 +1055,23 @@ void test_nth(TestCase& testCase)
     testCase(*iter.nth(5) == 9, "nth, manually stepping iterator, 4");
     testCase(*iter.nth(0) == 10, "nth, manually stepping iterator, 5");
     testCase(!iter.nth(0).has_value(), "nth, manually stepping iterator, 6");
+
+    // test nth_back
+    testCase(*rusty::iter(numbers).nth_back(0) == 10, "nth_back, from vector, 0th");
+    testCase(*rusty::iter(numbers).nth_back(4) == 6, "nth_back, from vector, 4th");
+    testCase(!rusty::iter(numbers).nth_back(15).has_value(), "nth_back, from vector, index out of bounds");
+    testCase(*rusty::range(0, 10).nth_back(0) == 9, "nth_back, range, 0th");
+    testCase(*rusty::range(0, 10).nth_back(4) == 5, "nth_back, range, 4th");
+    testCase(!rusty::range(0, 10).nth_back(15).has_value(), "nth_back, range, index out of bounds");
+    testCase(!rusty::range(0, 0).nth_back(0).has_value(), "nth_back, empty iterator");
+
+    auto iter2 = rusty::iter(numbers);
+    testCase(*iter2.nth_back(0) == 10, "nth_back, manually stepping iterator, 1");
+    testCase(*iter2.nth_back(0) == 9, "nth_back, manually stepping iterator, 2");
+    testCase(*iter2.nth_back(0) == 8, "nth_back, manually stepping iterator, 3");
+    testCase(*iter2.nth_back(5) == 2, "nth_back, manually stepping iterator, 4");
+    testCase(*iter2.nth_back(0) == 1, "nth_back, manually stepping iterator, 5");
+    testCase(!iter2.nth_back(0).has_value(), "nth_back, manually stepping iterator, 6");
 }
 
 void test_all(TestCase& testCase)
@@ -1042,6 +1098,13 @@ void test_find(TestCase& testCase)
     testCase(!rusty::range(0, 0).find([](const int& number) { return true; }).has_value(), "find, empty iterator");
     testCase(*rusty::iter(numbers).find([](const int& number) { return number % 2 == 0; }) == 2, "find, find an even number");
     testCase(*rusty::iter(numbers).find([](const int& number) { return number > 5; }) == 6, "find, find a number >5");
+
+    // test rfind
+    testCase(*rusty::iter(numbers).rfind([](const int& number) { return number == 5; }) == 5, "find, find 5");
+    testCase(!rusty::iter(numbers).rfind([](const int& number) { return number == 15; }).has_value(), "find, find 15");
+    testCase(!rusty::range(0, 0).rfind([](const int& number) { return true; }).has_value(), "find, empty iterator");
+    testCase(*rusty::iter(numbers).rfind([](const int& number) { return number % 2 == 0; }) == 10, "find, find an even number");
+    testCase(*rusty::iter(numbers).rfind([](const int& number) { return number > 5; }) == 10, "find, find a number >5");
 }
 
 void test_position(TestCase& testCase)
@@ -1052,6 +1115,13 @@ void test_position(TestCase& testCase)
     testCase(!rusty::range(0, 0).position([](const int& number) { return true; }).has_value(), "position, empty iterator");
     testCase(rusty::iter(numbers).position([](const int& number) { return number % 2 == 0; }) == 1, "position, find an even number");
     testCase(rusty::iter(numbers).position([](const int& number) { return number > 5; }) == 5, "position, find a number >5");
+
+    // test rposition
+    testCase(rusty::iter(numbers).rposition([](const int& number) { return number == 5; }) == 5, "rposition, find 5");
+    testCase(!rusty::iter(numbers).rposition([](const int& number) { return number == 15; }).has_value(), "rposition, find 15");
+    testCase(!rusty::range(0, 0).rposition([](const int& number) { return true; }).has_value(), "rposition, empty iterator");
+    testCase(rusty::iter(numbers).rposition([](const int& number) { return number % 2 == 0; }) == 0, "rposition, find an even number");
+    testCase(rusty::iter(numbers).rposition([](const int& number) { return number > 5; }) == 0, "rposition, find a number >5");
 }
 
 void test_min(TestCase& testCase)
@@ -1140,6 +1210,25 @@ void test_is_sorted_by(TestCase& testCase)
     testCase(!rusty::iter(numbersMixed).is_sorted_by([](const int& a, const int& b) { return a - b; }), "is_sorted_by, mixed values, test ascending");
     testCase(!rusty::iter(numbersMixed).is_sorted_by([](const int& a, const int& b) { return b - a; }), "is_sorted_by, mixed values, test descending");
     testCase(rusty::range(0, 0).is_sorted_by([](const int& a, const int& b) { return a - b; }), "is_sorted_by, empty iterator");
+}
+
+
+void test_reverse(TestCase& testCase)
+{
+    testCase(test_iter(rusty::empty<int>().reverse(), std::vector<int>{ }), "reverse, empty iterator");
+    testCase(test_iter(rusty::range(0, 10).reverse(), std::vector<int>{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }), "reverse, simple range");
+    testCase(test_iter(rusty::range(0, 10, 3).reverse(), std::vector<int>{ 9, 6, 3, 0 }), "reverse, range with step");
+    testCase(test_iter(rusty::range(0, 10, 4).reverse(), std::vector<int>{ 8, 4, 0 }), "reverse, range with step, test case 2");
+
+    std::vector<int> numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    std::vector<int> reversed = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+
+    std::list<int> numbersList = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    std::list<int> reversedList = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+
+    testCase(test_iter(rusty::iter(numbers).reverse(), reversed), "reverse, from vector");
+    testCase(test_iter(rusty::iter(numbers).reverse().reverse(), numbers), "reverse 2x");
+    testCase(test_collect_ordered(rusty::iter(numbersList).reverse(), reversedList), "reverse, from list");
 }
 
 
@@ -1478,6 +1567,8 @@ int main()
         test_is_sorted_ascending(testCase);
         test_is_sorted_descending(testCase);
         test_is_sorted_by(testCase);
+
+        test_reverse(testCase);
 
         test_comparisons(testCase);
 

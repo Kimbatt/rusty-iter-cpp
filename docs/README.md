@@ -107,6 +107,59 @@ auto gen = [&]() -> std::optional<int>
 auto it = rusty::finite_generator(gen); // yields 0, 1, 3, 7, 15
 ```
 ---
+`rusty::double_ended_finite_generator(Generator)`  
+Creates a double-ended iterator from the provided generator instance.  
+The generator must have a `next` and a `next_back` class method, both of which return an std::optional value.
+```cpp
+struct FiniteCountingGenerator
+{
+    FiniteCountingGenerator(int startValue, int maxValue) : _value(startValue), _maxValue(maxValue)
+    {
+    }
+
+    std::optional<int> next()
+    {
+        if (_value >= _maxValue)
+        {
+            return { };
+        }
+
+        int prev = _value;
+        ++_value;
+        return prev;
+    }
+
+    std::optional<int> next_back()
+    {
+        if (_value >= _maxValue)
+        {
+            return { };
+        }
+
+        return --_maxValue;
+    }
+
+    int _value;
+    int _maxValue;
+};
+
+auto doubleEndedGenerator = rusty::double_ended_finite_generator(FiniteCountingGenerator(0, 10));
+doubleEndedGenerator.next(); // pointer to 0
+doubleEndedGenerator.next(); // pointer to 1 
+doubleEndedGenerator.next(); // pointer to 2
+doubleEndedGenerator.next_back(); // pointer to 9
+doubleEndedGenerator.next_back(); // pointer to 8
+doubleEndedGenerator.next_back(); // pointer to 7
+doubleEndedGenerator.next(); // pointer to 3
+doubleEndedGenerator.next(); // pointer to 4
+doubleEndedGenerator.next_back(); // pointer to 6
+doubleEndedGenerator.next_back(); // pointer to 5
+doubleEndedGenerator.next_back(); // nullptr
+doubleEndedGenerator.next_back(); // nullptr
+doubleEndedGenerator.next(); // nullptr
+doubleEndedGenerator.next(); // nullptr
+```
+---
 `rusty::empty<T>()`  
 Creates an empty iterator, which yields no values.
 ```cpp
@@ -841,4 +894,50 @@ rusty::iter(longRangeFloat).ge(rusty::iter(shortRangeFloat)); // true
 rusty::iter(bigRangeFloat).ge(rusty::iter(smallRangeFloat)); // true
 rusty::iter(smallRangeFloat).ge(rusty::iter(bigRangeFloat)); // false
 rusty::iter(nonComparable).ge(rusty::iter(nonComparable)); // false
+```
+## Double-ended iterators
+Double-ended iterators are created from C++ bidirectional (or random access) iterators.  
+The following methods also create double-ended iterators:
+- `rusty::range`
+- `rusty::range_inclusive`
+- `rusty::double_ended_finite_generator`
+
+Double-ended iterators have the following functions in addition to the regular iterators:
+
+### Iterator functions
+---
+`.reverse()`  
+Reverses the iterator, causing `next` to return elements from the back, and `next_back` to return elements from the front.
+```cpp
+auto it = rusty::range(0, 10).reverse();
+// yields 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+```
+### Consumer functions
+---
+`.nth_back<T>(T index)`  
+Returns the element at the given index from the back, by advancing the back of the iterator idx + 1 times.  
+If the iterator doesn't have enough elements, then an empty value is returned.
+```cpp
+std::vector<int> numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+int value = *rusty::iter(numbers).nth_back(2); // == 8 
+```
+---
+`.rfold<T>(T initialValue, FoldFunction)`  
+Same as `fold`, but starts the folding process from the back.
+
+---
+`.rfind(Predicate)`  
+Same as `find`, but the search is started from the end.
+```cpp
+std::vector<int> numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+int value = *rusty::iter(numbers).rfind([](const int& number) { return number % 2 == 0; });
+// == 10
+```
+---
+`.rposition(Predicate)`  
+Same as `position`, but the value is searched starting from the end.
+```cpp
+std::vector<int> numbers = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+int value = *rusty::iter(numbers).rposition([](const int& number) { return number % 2 == 0; });
+// == 0
 ```

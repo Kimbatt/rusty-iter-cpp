@@ -35,7 +35,7 @@ Iterators can be manually advanced by calling the `.next()` function on them, wh
 See https://github.com/Kimbatt/rusty-iter-cpp/blob/master/docs/README.md
 ## Requirements
 This library requires C++17 or later.  
-There are no external dependencies, only the C++ standard library (`type_traits` and `optional` headers are used).
+There are no external dependencies, only the C++ standard library (`type_traits`, `optional` and the `utility` headers are used).
 ## Comparison functions
 When using functions that require you to specify a comparison function:  
 The provided comparison function must take two values and return a value that is <0 if the first value is less than the second, 0 if the two values are equal, and >0 if the first value is greater than the second.  
