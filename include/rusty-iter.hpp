@@ -526,8 +526,7 @@ namespace rusty
     template <typename ConcreteIterType, typename OutType>
     struct Iterator
     {
-        template <typename ConcreteIterType, typename OutType>
-        friend struct DoubleEndedIterator;
+        friend struct DoubleEndedIterator<ConcreteIterType, OutType>;
 
         Iterator() = default;
         Iterator(const Iterator&) = default;
@@ -1402,7 +1401,7 @@ namespace rusty
         // returned from the front of the iterator (so the end and the front of the iterator has already crossed).
         const OutType* next_back()
         {
-            return concrete_iter()->next_back_impl();
+            return Iterator<ConcreteIterType, OutType>::concrete_iter()->next_back_impl();
         }
 
 
@@ -1488,7 +1487,7 @@ namespace rusty
         // and `next_back` to return elements from the front.
         detail::ReverseIter<ConcreteIterType> reverse()
         {
-            return detail::ReverseIter<ConcreteIterType>(*concrete_iter());
+            return detail::ReverseIter<ConcreteIterType>(*Iterator<ConcreteIterType, OutType>::concrete_iter());
         }
     };
 
@@ -1501,13 +1500,10 @@ namespace rusty
         template <typename CppIterType>
         struct CppIteratorWrapper : public DoubleEndedIterator<CppIteratorWrapper<CppIterType>, typename CppIterType::value_type>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
-            template <typename ConcreteIterType, typename OutType>
-            friend struct DoubleEndedIterator;
-
             using OutType = typename CppIterType::value_type;
+
+            friend struct Iterator<CppIteratorWrapper<CppIterType>, OutType>;
+            friend struct DoubleEndedIterator<CppIteratorWrapper<CppIterType>, OutType>;
 
             CppIteratorWrapper(const CppIterType& begin, const CppIterType& end) : _begin(begin), _end(end)
             {
@@ -1549,11 +1545,10 @@ namespace rusty
         template <typename IterType, typename T>
         struct StepByIter : public Iterator<StepByIter<IterType, T>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<StepByIter<IterType, T>, OutType>;
 
             StepByIter(const IterType& iter, const T& stepSize) : _iter(iter), _stepSize(stepSize), _first(true), _invalid(stepSize <= 0)
             {
@@ -1593,11 +1588,10 @@ namespace rusty
         template <typename IterType, typename ChainedIterType>
         struct ChainIter : public Iterator<ChainIter<IterType, ChainedIterType>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<ChainIter<IterType, ChainedIterType>, OutType>;
 
             ChainIter(const IterType& iter, const ChainedIterType& chainedIter) : _iter(iter), _chainedIter(chainedIter), _firstDone(false)
             {
@@ -1630,11 +1624,10 @@ namespace rusty
         template <typename IterType, typename ZippedIterType>
         struct ZipIter : public Iterator<ZipIter<IterType, ZippedIterType>, std::pair<typename IterType::OutType, typename ZippedIterType::OutType>>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = std::pair<InType, typename ZippedIterType::OutType>;
+
+            friend struct Iterator<ZipIter<IterType, ZippedIterType>, OutType>;
 
             ZipIter(const IterType& iter, const ZippedIterType& zippedIter) : _iter(iter), _zippedIter(zippedIter), _tmpResult(), _anyDone(false)
             {
@@ -1671,11 +1664,10 @@ namespace rusty
         template <typename IterType, typename SeparatorGetter>
         struct IntersperseWithIter : public Iterator<IntersperseWithIter<IterType, SeparatorGetter>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<IntersperseWithIter<IterType, SeparatorGetter>, OutType>;
 
             IntersperseWithIter(const IterType& iter, const SeparatorGetter& separatorGetter) :
                 _iter(iter), _separatorGetter(separatorGetter), _tmpResult(), _nextResult(), _separatorIsNext(false)
@@ -1733,11 +1725,10 @@ namespace rusty
         template <typename IterType, typename MapFunction>
         struct MapIter : public Iterator<MapIter<IterType, MapFunction>, typename ReturnTypeHelperConstRefOrValue<MapFunction, typename IterType::OutType>::type>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = typename ReturnTypeHelperConstRefOrValue<MapFunction, InType>::type;
+
+            friend struct Iterator<MapIter<IterType, MapFunction>, OutType>;
 
             MapIter(const IterType& iter, const MapFunction& mapFunction) : _iter(iter), _mapFunction(mapFunction), _tmpResult()
             {
@@ -1765,11 +1756,10 @@ namespace rusty
         template <typename IterType, typename FilterFunction>
         struct FilterIter : public Iterator<FilterIter<IterType, FilterFunction>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<FilterIter<IterType, FilterFunction>, OutType>;
 
             FilterIter(const IterType& iter, const FilterFunction& filterFunction) : _iter(iter), _filterFunction(filterFunction)
             {
@@ -1797,11 +1787,10 @@ namespace rusty
         template <typename IterType, typename FilterMapFunction>
         struct FilterMapIter : public Iterator<FilterMapIter<IterType, FilterMapFunction>, typename ReturnTypeHelperConstRefOrValue<FilterMapFunction, typename IterType::OutType>::type::value_type>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = typename ReturnTypeHelperConstRefOrValue<FilterMapFunction, InType>::type::value_type;
+
+            friend struct Iterator<FilterMapIter<IterType, FilterMapFunction>, OutType>;
 
             FilterMapIter(const IterType& iter, const FilterMapFunction& filterMapFunction) : _iter(iter), _filterMapFunction(filterMapFunction), _tmpResult()
             {
@@ -1831,11 +1820,10 @@ namespace rusty
         template <typename IterType>
         struct PeekableIter : public Iterator<PeekableIter<IterType>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<PeekableIter<IterType>, OutType>;
 
             PeekableIter(const IterType& iter) : _iter(iter), _nextItem(), _tmpResult()
             {
@@ -1906,11 +1894,10 @@ namespace rusty
         template <typename IterType, typename Predicate>
         struct SkipWhileIter : public Iterator<SkipWhileIter<IterType, Predicate>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<SkipWhileIter<IterType, Predicate>, OutType>;
 
             SkipWhileIter(const IterType& iter, const Predicate& predicate) : _iter(iter), _predicate(predicate), _done(false)
             {
@@ -1945,11 +1932,10 @@ namespace rusty
         template <typename IterType, typename Predicate>
         struct TakeWhileIter : public Iterator<TakeWhileIter<IterType, Predicate>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<TakeWhileIter<IterType, Predicate>, OutType>;
 
             TakeWhileIter(const IterType& iter, const Predicate& predicate) : _iter(iter), _predicate(predicate), _done(false)
             {
@@ -1983,12 +1969,11 @@ namespace rusty
         template <typename IterType>
         struct FlattenIter : Iterator<FlattenIter<IterType>, typename IterType::OutType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InnerIterType = typename IterType::OutType;
             using InType = IterType;
             using OutType = typename InnerIterType::OutType;
+
+            friend struct Iterator<FlattenIter<IterType>, OutType>;
 
             FlattenIter(const IterType& iter) : _iter(iter), _innerIter()
             {
@@ -2040,11 +2025,10 @@ namespace rusty
         template <typename IterType, typename InspectCallback>
         struct InspectIter : public Iterator<InspectIter<IterType, InspectCallback>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<InspectIter<IterType, InspectCallback>, OutType>;
 
             InspectIter(const IterType& iter, const InspectCallback& inspectCallback) : _iter(iter), _inspectCallback(inspectCallback)
             {
@@ -2069,11 +2053,10 @@ namespace rusty
         template <typename IterType>
         struct CycleIter : public Iterator<CycleIter<IterType>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<CycleIter<IterType>, OutType>;
 
             CycleIter(const IterType& iter) : _originalIter(iter), _iter(iter), _iterIsEmpty(true)
             {
@@ -2111,10 +2094,9 @@ namespace rusty
         template <typename GeneratorFunction>
         struct GeneratorIter : public Iterator<GeneratorIter<GeneratorFunction>, typename std::invoke_result<GeneratorFunction>::type>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using OutType = typename std::invoke_result<GeneratorFunction>::type;
+
+            friend struct Iterator<GeneratorIter<GeneratorFunction>, OutType>;
 
             GeneratorIter(const GeneratorFunction& generatorFunction) : _generatorFunction(generatorFunction), _tmpResult()
             {
@@ -2134,10 +2116,9 @@ namespace rusty
         template <typename GeneratorFunction>
         struct FiniteGeneratorIter : public Iterator<FiniteGeneratorIter<GeneratorFunction>, typename std::invoke_result<GeneratorFunction>::type::value_type>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
             using OutType = typename std::invoke_result<GeneratorFunction>::type::value_type;
+
+            friend struct Iterator<FiniteGeneratorIter<GeneratorFunction>, OutType>;
 
             FiniteGeneratorIter(const GeneratorFunction& generatorFunction) : _generatorFunction(generatorFunction), _tmpResult(), _done(false)
             {
@@ -2171,13 +2152,10 @@ namespace rusty
         template <typename GeneratorFunction>
         struct DoubleEndedFiniteGeneratorIter : public DoubleEndedIterator<DoubleEndedFiniteGeneratorIter<GeneratorFunction>, typename std::invoke_result<GeneratorFunction>::type::value_type>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
-            template <typename ConcreteIterType, typename OutType>
-            friend struct DoubleEndedIterator;
-
             using OutType = typename std::invoke_result<GeneratorFunction>::type::value_type;
+
+            friend struct Iterator<DoubleEndedFiniteGeneratorIter<GeneratorFunction>, OutType>;
+            friend struct DoubleEndedIterator<DoubleEndedFiniteGeneratorIter<GeneratorFunction>, OutType>;
 
             DoubleEndedFiniteGeneratorIter(const GeneratorFunction& generatorFunction) : _generatorFunction(generatorFunction), _tmpResult(), _done(false)
             {
@@ -2230,14 +2208,11 @@ namespace rusty
         template <typename T>
         struct EmptyIter : public DoubleEndedIterator<EmptyIter<T>, T>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
-            template <typename ConcreteIterType, typename OutType>
-            friend struct DoubleEndedIterator;
-
             using InType = T;
             using OutType = T;
+
+            friend struct Iterator<EmptyIter<T>, OutType>;
+            friend struct DoubleEndedIterator<EmptyIter<T>, OutType>;
 
             EmptyIter()
             {
@@ -2258,14 +2233,11 @@ namespace rusty
         template <typename IterType>
         struct ReverseIter : public DoubleEndedIterator<ReverseIter<IterType>, typename IterType::OutType>
         {
-            template <typename ConcreteIterType, typename OutType>
-            friend struct Iterator;
-
-            template <typename ConcreteIterType, typename OutType>
-            friend struct DoubleEndedIterator;
-
             using InType = typename IterType::OutType;
             using OutType = InType;
+
+            friend struct Iterator<ReverseIter<IterType>, OutType>;
+            friend struct DoubleEndedIterator<ReverseIter<IterType>, OutType>;
 
             ReverseIter(const IterType& iter) : _iter(iter)
             {
@@ -2298,7 +2270,7 @@ namespace rusty
     }
 
     // Creates an iterator from a collection, e.g. std::vector, std::string, std::set, etc.
-    // Equivalent to <c>iter(collection.begin(), collection.end())</c>.
+    // Equivalent to `iter(collection.begin(), collection.end())`.
     template <typename Collection>
     detail::CppIteratorWrapper<typename Collection::const_iterator> iter(const Collection& collection)
     {
