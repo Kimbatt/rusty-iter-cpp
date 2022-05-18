@@ -1014,11 +1014,23 @@ void test_fold(TestCase& testCase)
     testCase(rusty::range(0, 0).fold(0, foldFunc) == 0, "fold, empty iterator");
     testCase(rusty::range(0, 10).fold(0, foldFunc) == 45, "fold");
     testCase(rusty::range(1, 10).fold(1, [](const int& acc, const int& current) { return acc * current; }) == 362880, "fold, multiplication");
+    testCase(rusty::range(0, 10).fold(std::string(""),
+        [](const std::string& acc, const int& current)
+        {
+            return acc + std::to_string(current);
+        }
+    ) == "0123456789", "fold, different types");
 
     // test rfold
     testCase(rusty::range(0, 0).rfold(0, foldFunc) == 0, "rfold, empty iterator");
     testCase(rusty::range(0, 10).rfold(0, foldFunc) == 45, "rfold");
     testCase(rusty::range(1, 10).rfold(1, [](const int& acc, const int& current) { return acc * current; }) == 362880, "rfold, multiplication");
+    testCase(rusty::range(0, 10).rfold(std::string(""),
+        [](const std::string& acc, const int& current)
+        {
+            return acc + std::to_string(current);
+        }
+    ) == "9876543210", "rfold, different types");
 }
 
 void test_count(TestCase& testCase)

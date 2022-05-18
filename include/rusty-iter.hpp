@@ -441,7 +441,11 @@ namespace rusty
                 //     int, const int, const int&, auto, const auto&, auto&&
                 // You'll get a compile error if it's either one of these:
                 //     int&, auto&, int*, const int*, int&&
-                static_assert(isInvocable, "The function's parameters must be declared as either const reference or a value (see comment above).");
+                //
+                // You can also get this error if you specified incorrect types for the callback function, for example:
+                // rusty::range(0, 10).filter([](const std::string& value) { return true; });
+                // The function's parameter ----------------^ is expected to be an int value.
+                static_assert(isInvocable, "The function's parameters must be the correct type, and must be declared as either const reference or a value (see comment above).");
 
                 return isInvocable;
             }
@@ -640,7 +644,7 @@ namespace rusty
         template <typename T, typename FoldFunction>
         T fold(T initialValue, const FoldFunction& foldFunction)
         {
-            constexpr bool typeCheck = detail::ReturnTypeHelperConstRefOrValue<FoldFunction, const OutType&, const OutType&>::check();
+            constexpr bool typeCheck = detail::ReturnTypeHelperConstRefOrValue<FoldFunction, const T&, const OutType&>::check();
 
             while (const OutType* value = next())
             {
@@ -1430,7 +1434,7 @@ namespace rusty
         template <typename T, typename FoldFunction>
         T rfold(T initialValue, const FoldFunction& foldFunction)
         {
-            constexpr bool typeCheck = detail::ReturnTypeHelperConstRefOrValue<FoldFunction, const OutType&, const OutType&>::check();
+            constexpr bool typeCheck = detail::ReturnTypeHelperConstRefOrValue<FoldFunction, const T&, const OutType&>::check();
 
             while (const OutType* value = next_back())
             {
