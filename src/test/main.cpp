@@ -246,6 +246,9 @@ void test_iter_functionality(TestCase& testCase)
 
     testCase(test_iter(rusty::iter(numbers.begin(), numbers.end()), numbers), "basic iterator functionality with begin - end, simple");
     testCase(test_iter(rusty::iter(empty.begin(), empty.end()), empty), "basic iterator functionality with begin - end, empty");
+
+    testCase(test_iter(rusty::iter(numbers.data(), numbers.data() + numbers.size()), numbers), "basic iterator functionality with begin - end, simple, pointers");
+    testCase(test_iter(rusty::iter(empty.data(), empty.data() + empty.size()), empty), "basic iterator functionality with begin - end, empty, pointers");
 }
 
 void test_generators(TestCase& testCase)

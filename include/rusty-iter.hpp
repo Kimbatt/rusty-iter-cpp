@@ -457,6 +457,25 @@ namespace rusty
             using type = typename std::invoke_result<Func, Args...>::type;
         };
 
+        // Helpers for checking if a type has member type `value_type`
+        template <class T>
+        struct Void
+        {
+            using type = void;
+        };
+
+        template <class T, class U = void>
+        struct ValueTypeHelper
+        {
+            using value_type = typename std::remove_pointer_t<T>;
+        };
+
+        template <class T>
+        struct ValueTypeHelper<T, typename Void<typename T::value_type>::type>
+        {
+            using value_type = typename T::value_type;
+        };
+
 
         //
         // Forward declarations
@@ -1502,9 +1521,9 @@ namespace rusty
         //
 
         template <typename CppIterType>
-        struct CppIteratorWrapper : public DoubleEndedIterator<CppIteratorWrapper<CppIterType>, typename CppIterType::value_type>
+        struct CppIteratorWrapper : public DoubleEndedIterator<CppIteratorWrapper<CppIterType>, typename ValueTypeHelper<CppIterType>::value_type>
         {
-            using OutType = typename CppIterType::value_type;
+            using OutType = typename ValueTypeHelper<CppIterType>::value_type;
 
             friend struct Iterator<CppIteratorWrapper<CppIterType>, OutType>;
             friend struct DoubleEndedIterator<CppIteratorWrapper<CppIterType>, OutType>;
